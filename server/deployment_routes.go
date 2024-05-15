@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/Tanmai2002/takago/utils"
 	"github.com/gin-gonic/gin"
@@ -10,7 +11,6 @@ import (
 
 func AddDeploymentRoutes(s *gin.Engine) {
 	s.POST("/deploy", createDeployment)
-	// s.POST("/deployments", createDeployment)
 	// s.GET("/deployments/:id", getDeployment)
 	// s.PUT("/deployments/:id", updateDeployment)
 	// s.DELETE("/deployments/:id", deleteDeployment)
@@ -28,7 +28,8 @@ func createDeployment(c *gin.Context) {
 		return
 	}
 	log.Default().Println(jsonBody)
-	outputDir := utils.CloneRepo(jsonBody.RepoURL)
+	id := utils.GenerateRandomString(7)
+	outputDir := utils.CloneRepo(jsonBody.RepoURL, id)
 
 	//Get All the File List Format
 
@@ -36,9 +37,14 @@ func createDeployment(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		panic(err)
-		return
+	}
+	for _, file := range files {
+		log.Default().Println(file, filepath.Join(utils.GetCWD(), file))
+		utils.UploadS3File(file, filepath.Join(utils.GetCWD(), file), "test")
 	}
 	log.Default().Println(files)
+	//Push to Redis
+	utils.PushToRedisBuildQueue(id)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",
