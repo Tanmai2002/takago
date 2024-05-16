@@ -45,6 +45,7 @@ func createDeployment(c *gin.Context) {
 	log.Default().Println(files)
 	//Push to Redis
 	utils.PushToRedisBuildQueue(id)
+	utils.InsertOne(utils.RepoCollection, utils.TakaGoProject{ID: id, RepoURL: jsonBody.RepoURL})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",

@@ -13,6 +13,8 @@ import (
 )
 
 var mongoClient *mongo.Client
+var RepoCollection *mongo.Collection
+var databaseName string
 
 func init() {
 
@@ -20,7 +22,15 @@ func init() {
 
 	godotenv.Load(".env")
 	var uri, x = os.LookupEnv("MONGO_URI")
+	if !x {
+		panic("MONGO_URI not found in .env")
+	}
 	log.Default().Println(uri, x)
+	dbName, c := os.LookupEnv("MONGO_DB_NAME")
+	if !c {
+		panic("MONGO_DB_NAME not found in .env")
+	}
+	databaseName = dbName
 
 	// Use the SetServerAPIOptions() method to set the Stable API version to 1
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
@@ -30,28 +40,36 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			panic(err)
-		}
-	}()
+
 	var result bson.M
 	if err := client.Database("admin").RunCommand(context.TODO(), bson.D{{"ping", 1}}).Decode(&result); err != nil {
 		panic(err)
 	}
 	fmt.Println(" You successfully connected to MongoDB!")
 	mongoClient = client
+	RepoCollection = GetCollection(databaseName, "projects")
 
 }
 
 // GetCollection returns a collection from the database
 func GetCollection(dbName string, collectionName string) *mongo.Collection {
-	return mongoClient.Database(dbName).Collection(collectionName)
+	collection := mongoClient.Database(dbName).Collection(collectionName)
+	return collection
+}
+
+type TakaGoProject struct {
+	ID      string `json:"id" bson:"id"`
+	RepoURL string `json:"repo_url" bson:"repo_url"`
+	Branch  string `json:"branch" bson:"branch" default:"main"`
 }
 
 // InsertOne inserts a single document into the collection
-func InsertOne(collection *mongo.Collection, document interface{}) (*mongo.InsertOneResult, error) {
-	return collection.InsertOne(context.Background(), document)
+func InsertOne(collection *mongo.Collection, document interface{}) {
+	result, err := collection.InsertOne(context.Background(), document)
+	if err != nil {
+		panic(err)
+	}
+	log.Default().Println(result)
 }
 
 // FindOne finds a single document in the collection
