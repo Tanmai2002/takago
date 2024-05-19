@@ -61,16 +61,6 @@ type TakaGoProject struct {
 	ID      string `json:"id" bson:"id"`
 	RepoURL string `json:"repo_url" bson:"repo_url"`
 	Branch  string `json:"branch" bson:"branch" default:"main"`
-	Status  string `json:"status" bson:"status" default:"initiated"`
-}
-
-// InsertOne inserts a single document into the collection
-func InsertOne(collection *mongo.Collection, document interface{}) {
-	result, err := collection.InsertOne(context.Background(), document)
-	if err != nil {
-		panic(err)
-	}
-	log.Default().Println(result)
 }
 
 // FindOne finds a single document in the collection
@@ -86,14 +76,4 @@ func Find(collection *mongo.Collection, filter interface{}) (*mongo.Cursor, erro
 // UpdateOne updates a single document in the collection
 func UpdateOne(collection *mongo.Collection, filter interface{}, update interface{}) (*mongo.UpdateResult, error) {
 	return collection.UpdateOne(context.Background(), filter, update)
-}
-
-// DeleteOne deletes a single document from the collection
-func DeleteOne(collection *mongo.Collection, filter interface{}) (*mongo.DeleteResult, error) {
-	return collection.DeleteOne(context.Background(), filter)
-}
-
-// DeleteMany deletes multiple documents from the collection
-func DeleteMany(collection *mongo.Collection, filter interface{}) (*mongo.DeleteResult, error) {
-	return collection.DeleteMany(context.Background(), filter)
 }

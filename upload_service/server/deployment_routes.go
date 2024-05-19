@@ -29,13 +29,26 @@ func createDeployment(c *gin.Context) {
 	}
 	log.Default().Println(jsonBody)
 	id := utils.GenerateRandomString(7)
-	outputDir := utils.CloneRepo(jsonBody.RepoURL, id)
+	utils.InsertOne(utils.RepoCollection, utils.TakaGoProject{ID: id, RepoURL: jsonBody.RepoURL})
+
+	go uploadFilesToS3(id, jsonBody.RepoURL)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "pong",
+		"repoURL": jsonBody.RepoURL,
+	})
+}
+
+func uploadFilesToS3(id string, repoUrl string) {
+	outputDir := utils.CloneRepo(repoUrl, id)
 
 	//Get All the File List Format
 
 	files, err := utils.GetAllFilesInDir(outputDir)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.UpdateOne(utils.RepoCollection, utils.TakaGoProject{ID: id}, utils.TakaGoProject{ID: id, RepoURL: repoUrl, Branch: "main", Status: "cancelledbyError"})
+
 		panic(err)
 	}
 	for _, file := range files {
@@ -45,10 +58,6 @@ func createDeployment(c *gin.Context) {
 	log.Default().Println(files)
 	//Push to Redis
 	utils.PushToRedisBuildQueue(id)
-	utils.InsertOne(utils.RepoCollection, utils.TakaGoProject{ID: id, RepoURL: jsonBody.RepoURL})
+	utils.UpdateOne(utils.RepoCollection, utils.TakaGoProject{ID: id}, utils.TakaGoProject{ID: id, RepoURL: repoUrl, Branch: "main", Status: "queued"})
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-		"repoURL": jsonBody.RepoURL,
-	})
 }
