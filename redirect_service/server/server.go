@@ -50,7 +50,7 @@ func InitializeServer() *gin.Engine {
 }
 
 func redirectionHandler(c *gin.Context) {
-	id := c.Request.URL.Host
+	id := strings.Split(c.Request.URL.Host, ".")[0]
 	path := c.Request.URL.Path
 	log.Println(id)
 	log.Println(path)
