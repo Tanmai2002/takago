@@ -35,6 +35,9 @@ func init() {
 	mime.AddExtensionType(".zip", "application/zip")
 	mime.AddExtensionType(".rar", "application/x-rar-compressed")
 	mime.AddExtensionType(".tar", "application/x-tar")
+	mime.AddExtensionType(".gz", "application/gzip")
+	mime.AddExtensionType(".bz2", "application/x-bzip2")
+	mime.AddExtensionType(".json", "application/json")
 }
 
 func InitializeServer() *gin.Engine {
