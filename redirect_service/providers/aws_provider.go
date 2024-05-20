@@ -28,6 +28,7 @@ func init() {
 	}
 	finalcfg = cfg
 	log.Println(cfg.Region)
+	log.Println(cfg.Credentials)
 	log.Println(cfg.Credentials.Retrieve(context.Background()))
 	client := s3.NewFromConfig(finalcfg)
 	s3_client = client

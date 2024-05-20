@@ -5,6 +5,7 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -38,8 +39,13 @@ func init() {
 
 func InitializeServer() *gin.Engine {
 	server := gin.Default()
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	address := ":" + port
 	server.GET("/*t", redirectionHandler)
-	server.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	server.Run(address) // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 	return server
 }
 
