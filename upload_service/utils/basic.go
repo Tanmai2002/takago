@@ -4,7 +4,7 @@ import (
 	"math/rand"
 )
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var letters = []rune("abcdefghijklmnopqrstuvwxyz")
 
 func GenerateRandomString(n int) string {
 	b := make([]rune, n)
