@@ -69,7 +69,10 @@ func redirectionHandler(c *gin.Context) {
 	defer reader.Close()
 
 	//mime from extenstion of filepath
-	*ctype = mime.TypeByExtension(filepath.Base(path))
+
+	*ctype = mime.TypeByExtension(filepath.Ext(path))
+	log.Println(filepath.Base(path))
+	log.Println(*ctype)
 	c.Header("Content-Type", *ctype)
 	if _, err := io.Copy(c.Writer, reader); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
