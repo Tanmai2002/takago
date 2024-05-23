@@ -43,3 +43,11 @@ func GetAllFilesInDir(root string) ([]string, error) {
 	})
 	return files, err
 }
+
+func CleanupFiles(folderpath string) {
+	err := os.RemoveAll(folderpath)
+	if err != nil {
+		panic(err)
+	}
+
+}

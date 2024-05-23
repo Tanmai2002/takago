@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	"github.com/Tanmai2002/takago/deployment_service/utils"
 )
 
@@ -24,9 +26,14 @@ func uploadBuildFilesToS3(dir_of_project string, build_folder string, id string)
 }
 func runBuildCommands(path string, commands *[]string) {
 	os.Chdir(path)
+	shell, exist := os.LookupEnv("SHELL")
+	if !exist {
+		shell = "/bin/bash"
+
+	}
 	for _, command := range *commands {
 		log.Println("Running Command", command)
-		cmd := exec.Command("pwsh", "-c", command)
+		cmd := exec.Command(shell, "-c", command)
 		out, err := cmd.Output()
 		if err != nil {
 			panic(err.Error())
@@ -37,6 +44,7 @@ func runBuildCommands(path string, commands *[]string) {
 
 }
 func buildForID(id string) {
+	godotenv.Load()
 	log.Println("Starting Build")
 	dir := utils.GetDownloadDir(id)
 	uploaded_dir := utils.GetAWSUploadFolder(id)

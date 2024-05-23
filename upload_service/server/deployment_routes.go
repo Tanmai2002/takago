@@ -11,13 +11,42 @@ import (
 
 func AddDeploymentRoutes(s *gin.Engine) {
 	s.POST("/deploy", createDeployment)
+	s.GET("/check_id/:id", checkID)
+	s.GET("/deployments/:id", getDeployment)
 	// s.GET("/deployments/:id", getDeployment)
 	// s.PUT("/deployments/:id", updateDeployment)
 	// s.DELETE("/deployments/:id", deleteDeployment)
 }
 
 type DeploymentStruct struct {
-	RepoURL string `json:"repoURL"`
+	RepoURL      string `json:"repoURL"`
+	DeploymentId string `json:"id" bson:"id" default:""`
+}
+
+func checkID(c *gin.Context) {
+	id := c.Param("id")
+	exists := utils.CheckIfExist(utils.RepoCollection, utils.TakaGoProjectID{ID: id})
+	if exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot Create as ID Already Exists"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Available to Create",
+		"id":      id,
+	})
+}
+
+func getDeployment(c *gin.Context) {
+	id := c.Param("id")
+	result := utils.FindOne(utils.RepoCollection, utils.TakaGoProjectID{ID: id})
+	if result.Err() != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID Not Found"})
+		return
+	}
+	var project utils.TakaGoProject
+	result.Decode(&project)
+	c.JSON(http.StatusOK, project)
+
 }
 
 func createDeployment(c *gin.Context) {
@@ -29,6 +58,15 @@ func createDeployment(c *gin.Context) {
 	}
 	log.Default().Println(jsonBody)
 	id := utils.GenerateRandomString(7)
+	if jsonBody.DeploymentId != "" {
+		id = jsonBody.DeploymentId
+	}
+	exists := utils.CheckIfExist(utils.RepoCollection, utils.TakaGoProjectID{ID: id})
+	log.Printf("Exists: %v", exists)
+	if exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot Create as ID Already Exists"})
+		return
+	}
 	utils.InsertOne(utils.RepoCollection, utils.TakaGoProject{ID: id, RepoURL: jsonBody.RepoURL})
 
 	go uploadFilesToS3(id, jsonBody.RepoURL)
@@ -36,6 +74,7 @@ func createDeployment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",
 		"repoURL": jsonBody.RepoURL,
+		"id":      id,
 	})
 }
 
@@ -47,7 +86,7 @@ func uploadFilesToS3(id string, repoUrl string) {
 	files, err := utils.GetAllFilesInDir(outputDir)
 	if err != nil {
 		// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		utils.UpdateOne(utils.RepoCollection, utils.TakaGoProject{ID: id}, utils.TakaGoProject{ID: id, RepoURL: repoUrl, Branch: "main", Status: "cancelledbyError"})
+		utils.UpdateOne(utils.RepoCollection, utils.TakaGoProjectID{ID: id}, utils.TakaGoProject{ID: id, RepoURL: repoUrl, Branch: "main", Status: "cancelledbyError"})
 
 		panic(err)
 	}
@@ -58,6 +97,8 @@ func uploadFilesToS3(id string, repoUrl string) {
 	log.Default().Println(files)
 	//Push to Redis
 	utils.PushToRedisBuildQueue(id)
-	utils.UpdateOne(utils.RepoCollection, utils.TakaGoProject{ID: id}, utils.TakaGoProject{ID: id, RepoURL: repoUrl, Branch: "main", Status: "queued"})
-
+	x, err := utils.UpdateOne(utils.RepoCollection, utils.TakaGoProjectID{ID: id}, utils.TakaGoProject{ID: id, RepoURL: repoUrl, Branch: "main", Status: "queued"})
+	log.Println(err)
+	log.Println(x.UpsertedID)
+	go utils.CleanupFiles(outputDir)
 }

@@ -64,6 +64,14 @@ type TakaGoProject struct {
 	Status  string `json:"status" bson:"status" default:"initiated"`
 }
 
+type TakaGoProjectID struct {
+	ID string `json:"id" bson:"id"`
+}
+type TakaGoProjectID_Status struct {
+	ID     string `json:"id" bson:"id"`
+	Status string `json:"status" bson:"status" default:"initiated"`
+}
+
 // InsertOne inserts a single document into the collection
 func InsertOne(collection *mongo.Collection, document interface{}) {
 	result, err := collection.InsertOne(context.Background(), document)
@@ -71,6 +79,15 @@ func InsertOne(collection *mongo.Collection, document interface{}) {
 		panic(err)
 	}
 	log.Default().Println(result)
+}
+
+func CheckIfExist(collection *mongo.Collection, filter interface{}) bool {
+	result := FindOne(collection, filter)
+	if result.Err() != nil {
+		return false
+	}
+	return true
+
 }
 
 // FindOne finds a single document in the collection
@@ -84,8 +101,9 @@ func Find(collection *mongo.Collection, filter interface{}) (*mongo.Cursor, erro
 }
 
 // UpdateOne updates a single document in the collection
-func UpdateOne(collection *mongo.Collection, filter interface{}, update interface{}) (*mongo.UpdateResult, error) {
-	return collection.UpdateOne(context.Background(), filter, update)
+func UpdateOne(collection *mongo.Collection, filter interface{}, update TakaGoProject) (*mongo.UpdateResult, error) {
+	return collection.UpdateOne(context.Background(), filter, bson.D{{"$set", update}})
+	// return collection.UpdateOne(context.Background(), filter, update)
 }
 
 // DeleteOne deletes a single document from the collection
